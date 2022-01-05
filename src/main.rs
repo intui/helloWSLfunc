@@ -12,29 +12,31 @@ use self::diesel::prelude::*;
 
 #[tokio::main]
 async fn main() {
-
     use handler::schema::posts::dsl::*;
-    let connection = establish_connection();
-    let results = posts.filter(published.eq(true))
-        .limit(5)
-        .load::<Post>(&connection)
-        .expect("Error loading posts");
-
-    println!("Displaying {} posts", results.len());
-    let results_len = results.len() + 1 - 1;
-    
-    for post in results {
-        println!("{}", post.title);
-        println!("----------\n");
-        println!("{}", post.body);
-    }
+    println!("Trace: main() started");
     
     let example1 = warp::get()
         .and(warp::path("api"))
         .and(warp::path("httpexample"))
         .and(warp::query::<HashMap<String, String>>())
         .map(move |p: HashMap<String, String>| match p.get("name") {
-            Some(name) => Response::builder().body(format!("Hello dear {}! Nice to see you. We have {} results.", name, results_len)),
+            Some(name) => {
+                let connection = establish_connection();
+                let results = posts.filter(published.eq(true))
+                    .limit(5)
+                    .load::<Post>(&connection)
+                    .expect("Error loading posts");
+            
+                println!("Displaying {} posts", results.len());
+                let results_len = results.len();
+                
+                for post in results {
+                    println!("{}", post.title);
+                    println!("----------\n");
+                    println!("{}", post.body);
+                }
+                Response::builder().body(format!("Hello dear user {}! Nice to see you. We have {} results.", name, results_len))
+            },
             None => Response::builder().body(String::from("This HTTP triggered function executed successfully. Pass a name in the query string for a personalized response.")),
         });
 
